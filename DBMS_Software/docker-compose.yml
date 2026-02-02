@@ -1,0 +1,41 @@
+# Hostel Management: MySQL + Backend (optional; use when you want DB + API in containers)
+# Frontend: build with `cd frontend && npm run build` and set VITE_API_URL; serve dist/ via nginx or same host.
+
+services:
+  mysql:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-changeme}
+      MYSQL_DATABASE: ${DB_NAME:-hostel_management}
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "5000:5000"
+    environment:
+      NODE_ENV: production
+      PORT: 5000
+      DB_HOST: mysql
+      DB_USER: root
+      DB_PASSWORD: ${DB_PASSWORD:-changeme}
+      DB_NAME: ${DB_NAME:-hostel_management}
+      SESSION_SECRET: ${SESSION_SECRET:-change-me-in-production}
+      SESSION_STORE: mysql
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:5173}
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+volumes:
+  mysql_data:

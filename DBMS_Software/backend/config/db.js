@@ -12,6 +12,29 @@ async function ensureDatabase() {
   await conn.end();
 }
 
+/** Add missing columns to existing hostel_management (or similar) schema. Idempotent. */
+async function ensureMigrations() {
+  const conn = await pool.getConnection();
+  try {
+    const [cols] = await conn.execute(
+      "SELECT TABLE_NAME, COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME IN ('users', 'student')",
+      [dbName]
+    );
+    const has = (table, column) => cols.some((r) => r.TABLE_NAME === table && r.COLUMN_NAME === column);
+    if (!has('users', 'name')) {
+      await conn.execute('ALTER TABLE users ADD COLUMN name VARCHAR(255) NULL AFTER email');
+    }
+    if (!has('users', 'linked_student_id')) {
+      await conn.execute('ALTER TABLE users ADD COLUMN linked_student_id INT NULL');
+    }
+    if (!has('student', 'user_id')) {
+      await conn.execute('ALTER TABLE student ADD COLUMN user_id INT NULL UNIQUE AFTER student_id');
+    }
+  } finally {
+    conn.release();
+  }
+}
+
 async function ensureTables() {
   const createUsers = `
     CREATE TABLE IF NOT EXISTS users (
@@ -78,4 +101,5 @@ const pool = mysql.createPool({
 
 module.exports = pool;
 module.exports.ensureDatabase = ensureDatabase;
+module.exports.ensureMigrations = ensureMigrations;
 module.exports.ensureTables = ensureTables;

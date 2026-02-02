@@ -1,7 +1,13 @@
 import React, { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { auth } from '../api';
+import { useAuth } from '../context/AuthContext';
 
 export default function Signup() {
+  const navigate = useNavigate();
+  const { setUser } = useAuth();
   const [formData, setFormData] = useState({
+    name: '',
     email: '',
     password: '',
     confirmPassword: '',
@@ -11,6 +17,8 @@ export default function Signup() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [strength, setStrength] = useState(0);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
   // Calculate password strength
   useEffect(() => {
@@ -33,14 +41,32 @@ export default function Signup() {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setError('');
     if (formData.password !== formData.confirmPassword) {
-      alert("Passwords do not match!");
+      setError('Passwords do not match.');
       return;
     }
-    console.log('Registering:', formData);
-    // Add registration logic here
+    if (formData.password.length < 8) {
+      setError('Password must be at least 8 characters.');
+      return;
+    }
+    setLoading(true);
+    try {
+      const data = await auth.signup({
+        name: formData.name.trim() || formData.email.trim(),
+        email: formData.email.trim(),
+        password: formData.password,
+        role: formData.role,
+      });
+      setUser(data.user);
+      navigate(formData.role === 'admin' ? '/admin/dashboard' : '/dashboard', { replace: true });
+    } catch (err) {
+      setError(err.error || 'Signup failed. Try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const getStrengthColor = () => {
@@ -60,39 +86,55 @@ export default function Signup() {
   return (
     <div className="min-h-screen bg-[url('https://images.unsplash.com/photo-1555854877-bab0e564b8d5?q=80&w=2069')] bg-cover bg-center bg-fixed flex items-center justify-center px-4 font-sans relative">
       
-      {/* Purple/Dark Overlay (Matches Login) */}
-      <div className="absolute inset-0 bg-gradient-to-br from-purple-900/60 via-slate-900/40 to-slate-900/60"></div>
+      {/* Dark overlay */}
+      <div className="absolute inset-0 bg-slate-900/60" />
 
-      {/* Glassmorphism Card */}
-      <div className="relative z-10 w-full max-w-md bg-slate-900/40 backdrop-blur-md border border-white/20 rounded-2xl shadow-2xl p-8">
-        
+      {/* Card */}
+      <div className="relative z-10 w-full max-w-md bg-white/10 backdrop-blur-md border border-white/20 rounded-xl shadow-2xl p-8">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-white mb-2 tracking-tight">Create Account</h1>
-          <p className="text-purple-200 text-sm font-medium">
+          <h1 className="text-2xl font-bold text-white mb-2 tracking-tight">Create Account</h1>
+          <p className="text-slate-300 text-sm">
             Join the Hostel Community
           </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">
-          {/* Email Field */}
+          {error && (
+            <div className="p-3 rounded-lg text-sm bg-red-500/20 border border-red-400/50 text-red-100 text-center">
+              {error}
+            </div>
+          )}
           <div>
-            <label className="block text-xs font-bold text-purple-200 uppercase tracking-wider mb-2">
-              Email or Username
+            <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">
+              Full Name
+            </label>
+            <input
+              type="text"
+              name="name"
+              value={formData.name}
+              onChange={handleChange}
+              required
+              className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:border-transparent transition-all"
+              placeholder="Enter your name"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">
+              Email
             </label>
             <input 
-              type="text" 
+              type="email" 
               name="email" 
               value={formData.email}
               onChange={handleChange}
               required 
-              className="w-full px-4 py-3 bg-black/20 border border-white/10 rounded-lg text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+              className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:border-transparent transition-all"
               placeholder="Enter your email"
             />
           </div>
 
-          {/* Password Field */}
           <div>
-            <label className="block text-xs font-bold text-purple-200 uppercase tracking-wider mb-2">
+            <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">
               Password
             </label>
             <div className="relative">
@@ -102,13 +144,13 @@ export default function Signup() {
                 value={formData.password}
                 onChange={handleChange}
                 required 
-                className="w-full px-4 py-3 bg-black/20 border border-white/10 rounded-lg text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all pr-10"
+                className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:border-transparent transition-all pr-10"
                 placeholder="••••••••"
               />
               <button 
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute inset-y-0 right-0 pr-3 flex items-center text-purple-200 hover:text-white transition-colors focus:outline-none"
+                className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-white transition-colors focus:outline-none"
               >
                 {showPassword ? (
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -125,23 +167,22 @@ export default function Signup() {
             
             {/* Strength Meter */}
             <div className="mt-2">
-              <div className="h-1 w-full bg-gray-700 rounded-full overflow-hidden">
+              <div className="h-1 w-full bg-slate-600 rounded-full overflow-hidden">
                 <div 
                   className={`h-full transition-all duration-300 ease-out ${getStrengthColor()}`} 
                   style={{ width: `${(strength / 4) * 100}%` }}
                 ></div>
               </div>
               <p className={`text-xs mt-1 text-right font-medium ${
-                strength < 2 ? 'text-red-400' : strength < 4 ? 'text-yellow-400' : 'text-green-400'
+                strength < 2 ? 'text-red-400' : strength < 4 ? 'text-amber-400' : 'text-emerald-400'
               }`}>
                 {getStrengthLabel()}
               </p>
             </div>
           </div>
 
-          {/* Confirm Password Field */}
           <div>
-            <label className="block text-xs font-bold text-purple-200 uppercase tracking-wider mb-2">
+            <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">
               Confirm Password
             </label>
             <div className="relative">
@@ -151,13 +192,13 @@ export default function Signup() {
                 value={formData.confirmPassword}
                 onChange={handleChange}
                 required 
-                className="w-full px-4 py-3 bg-black/20 border border-white/10 rounded-lg text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all pr-10"
+                className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:border-transparent transition-all pr-10"
                 placeholder="••••••••"
               />
               <button 
                 type="button"
                 onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                className="absolute inset-y-0 right-0 pr-3 flex items-center text-purple-200 hover:text-white transition-colors focus:outline-none"
+                className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-white transition-colors focus:outline-none"
               >
                 {showConfirmPassword ? (
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -173,9 +214,8 @@ export default function Signup() {
             </div>
           </div>
 
-          {/* Role Selection */}
           <div>
-            <label className="block text-xs font-bold text-purple-200 uppercase tracking-wider mb-2">
+            <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">
               Select Role
             </label>
             <div className="relative">
@@ -183,13 +223,13 @@ export default function Signup() {
                 name="role"
                 value={formData.role}
                 onChange={handleChange}
-                className="w-full px-4 py-3 bg-black/20 border border-white/10 rounded-lg text-white appearance-none focus:outline-none focus:ring-2 focus:ring-purple-500 focus:bg-slate-800 transition-all cursor-pointer"
+                className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white appearance-none focus:outline-none focus:ring-2 focus:ring-slate-400 transition-all cursor-pointer"
               >
-                <option value="student" className="text-slate-900">Student</option>
-                <option value="warden" className="text-slate-900">Warden</option>
-                <option value="admin" className="text-slate-900">Administrator</option>
+                <option value="student" className="text-slate-900 bg-slate-100">Student</option>
+                <option value="guardian" className="text-slate-900 bg-slate-100">Guardian</option>
+                <option value="admin" className="text-slate-900 bg-slate-100">Administrator</option>
               </select>
-              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-purple-300">
+              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-400">
                 <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
                   <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/>
                 </svg>
@@ -199,18 +239,19 @@ export default function Signup() {
 
           <button 
             type="submit" 
-            className="w-full py-3.5 mt-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold rounded-lg shadow-lg shadow-purple-900/50 transform hover:-translate-y-0.5 transition-all duration-200"
+            disabled={loading}
+            className="w-full py-3.5 mt-2 bg-slate-700 hover:bg-slate-600 disabled:opacity-70 disabled:cursor-not-allowed text-white font-semibold rounded-lg shadow-lg transition-colors"
           >
-            Create Account
+            {loading ? 'Creating...' : 'Create Account'}
           </button>
         </form>
 
-        <div className="mt-8 text-center pt-6 border-t border-white/10">
-          <p className="text-sm text-gray-300">
+        <div className="mt-8 text-center pt-6 border-t border-white/20">
+          <p className="text-sm text-slate-300">
             Already have an account?{' '}
-            <a href="signin.html" className="text-purple-400 hover:text-purple-300 font-semibold hover:underline transition-colors">
+            <Link to="/login" className="text-white font-medium hover:underline transition-colors">
               Log In
-            </a>
+            </Link>
           </p>
         </div>
       </div>

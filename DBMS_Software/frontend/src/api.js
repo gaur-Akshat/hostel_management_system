@@ -1,4 +1,5 @@
-const BASE = '/api';
+// In production build, set VITE_API_URL to your API origin (e.g. https://api.example.com). Leave empty for same-origin or proxy.
+const BASE = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '') + '/api';
 
 // Example: health check (GET /api/health)
 export const health = () => api('/health');

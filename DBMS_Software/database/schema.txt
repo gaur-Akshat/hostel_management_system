@@ -1,0 +1,88 @@
+=== TABLE: attendance ===
+Columns: attendance_id (int), student_id (int), date (date), status (varchar(10))
+Rows: 0
+(empty)
+
+=== TABLE: fees ===
+Columns: fee_id (int), student_id (int), amount (decimal(10,2)), payment_date (date), payment_status (varchar(15)), fee_type (enum('MONTHLY','YEARLY')), period (varchar(20)), status (enum('PAID','PENDING'))
+Rows: 0
+(empty)
+
+=== TABLE: hostel ===
+Columns: hostel_id (int), hostel_name (varchar(50)), location (varchar(50)), total_rooms (int)
+Rows: 0
+(empty)
+
+=== TABLE: room ===
+Columns: room_id (int), room_number (varchar(10)), room_type (varchar(20)), capacity (int), availability_status (varchar(10)), hostel_id (int), current_occupancy (int), status (enum('AVAILABLE','FULL'))
+Rows: 0
+(empty)
+
+=== TABLE: room_allocation ===
+Columns: allocation_id (int), student_id (int), room_id (int), allocation_date (date)
+Rows: 0
+(empty)
+
+=== TABLE: staff ===
+Columns: staff_id (int), name (varchar(50)), role (varchar(30)), phone (varchar(15)), salary (decimal(10,2)), hostel_id (int)
+Rows: 0
+(empty)
+
+=== TABLE: student ===
+Columns: student_id (int), name (varchar(50)), dob (date), gender (varchar(10)), phone (varchar(15)), email (varchar(50)), address (varchar(100)), course (varchar(30)), year (int), room_id (int), guardian_name (varchar(100)), guardian_phone (varchar(15))
+Rows: 0
+(empty)
+
+=== TABLE: users ===
+Columns: user_id (int), email (varchar(100)), password (varchar(100)), role (enum('admin','student','guardian','staff')), created_at (timestamp)
+Rows: 0
+(empty)
+
+
+================================================================================
+ENTITY RELATIONSHIPS (ER)
+================================================================================
+
+HOSTEL (1) ----< (N) ROOM
+  - room.hostel_id → hostel.hostel_id
+  - One hostel has many rooms.
+
+HOSTEL (1) ----< (N) STAFF
+  - staff.hostel_id → hostel.hostel_id
+  - One hostel has many staff members.
+
+ROOM (1) ----< (N) STUDENT  [current assignment]
+  - student.room_id → room.room_id
+  - One room can have many students (by capacity).
+
+ROOM (1) ----< (N) ROOM_ALLOCATION
+  - room_allocation.room_id → room.room_id
+  - One room has many allocation records (history).
+
+STUDENT (1) ----< (N) ROOM_ALLOCATION
+  - room_allocation.student_id → student.student_id
+  - One student can have many allocation records over time.
+
+STUDENT (1) ----< (N) ATTENDANCE
+  - attendance.student_id → student.student_id
+  - One student has many attendance records.
+
+STUDENT (1) ----< (N) FEES
+  - fees.student_id → student.student_id
+  - One student has many fee/payment records.
+
+USERS
+  - No foreign key in schema. Typically linked in application:
+    - users (role=student/guardian/staff) may correspond to one student or staff record
+    - Link would be users.user_id ↔ student/staff (e.g. student.user_id or users.linked_id).
+
+--------------------------------------------------------------------------------
+SUMMARY (FK → referenced table)
+--------------------------------------------------------------------------------
+  attendance.student_id  → student.student_id
+  fees.student_id        → student.student_id
+  room.hostel_id         → hostel.hostel_id
+  room_allocation.student_id → student.student_id
+  room_allocation.room_id    → room.room_id
+  staff.hostel_id        → hostel.hostel_id
+  student.room_id        → room.room_id

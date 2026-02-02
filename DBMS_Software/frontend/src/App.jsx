@@ -1,6 +1,5 @@
-import { useState, useEffect } from 'react';
-import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
-import { auth } from './api';
+import { Routes, Route, Navigate } from 'react-router-dom';
+import { useAuth } from './context/AuthContext';
 import { DASHBOARD_ROLES, ROLES } from './utils/roles';
 import Layout from './components/Layout';
 import Landing from './pages/Landing';
@@ -10,35 +9,23 @@ import AdminDashboard from './pages/AdminDashboard';
 import Dashboard from './pages/Dashboard';
 
 function ProtectedRoute({ children, allowedRoles }) {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    auth
-      .me()
-      .then((u) => {
-        setUser(u);
-        const role = (u.role || '').toString().toLowerCase();
-        if (allowedRoles && !allowedRoles.includes(role)) {
-          navigate('/login', { replace: true });
-        }
-      })
-      .catch(() => {
-        setUser(null);
-        navigate('/login', { replace: true });
-      })
-      .finally(() => setLoading(false));
-  }, [allowedRoles, navigate]);
+  const { user, loading } = useAuth();
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-100">
-        <p className="text-slate-600">Loading...</p>
+      <div className="min-h-screen bg-[url('https://images.unsplash.com/photo-1555854877-bab0e564b8d5?q=80&w=2069')] bg-cover bg-center bg-fixed flex items-center justify-center relative">
+        <div className="absolute inset-0 bg-slate-900/60" />
+        <p className="relative z-10 text-white font-medium">Loading...</p>
       </div>
     );
   }
-  if (!user) return null;
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+  const role = (user.role || '').toString().toLowerCase();
+  if (allowedRoles && !allowedRoles.includes(role)) {
+    return <Navigate to="/login" replace />;
+  }
   return typeof children === 'function' ? children(user) : children;
 }
 
