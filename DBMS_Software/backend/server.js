@@ -10,6 +10,8 @@ const rateLimit = require('express-rate-limit');
 const db = require('./config/db');
 const authRoutes = require('./routes/auth');
 const studentRoutes = require('./routes/student');
+const registrationRoutes = require('./routes/registration');
+const seedRoutes = require('./routes/seed');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -76,6 +78,8 @@ app.use(session(sessionConfig));
 
 app.use('/api/auth', authRoutes);
 app.use('/api/student', studentRoutes);
+app.use('/api/registration', registrationRoutes);
+app.use('/api/seed', seedRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ ok: true });
@@ -96,6 +100,7 @@ async function start() {
   await db.ensureDatabase();
   await db.ensureMigrations();
   await db.ensureTables();
+  // ER: exactly 8 tables (HOSTEL, ROOM, STUDENT, STAFF, FEES, ATTENDANCE, ROOM_ALLOCATION, USERS) — no registration_requests
   app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
   });

@@ -3,10 +3,12 @@ import { Link, useNavigate } from "react-router-dom";
 import { auth } from "../api";
 import { useAuth } from "../context/AuthContext";
 
+// ID-based login: Student ID (e.g. AH26-101) + password for Student/Guardian.
+// Admin uses username ADMIN and password ADMIN@10 (demo only).
 export default function Login() {
   const navigate = useNavigate();
   const { setUser } = useAuth();
-  const [formData, setFormData] = useState({ email: "", password: "", role: "student" });
+  const [formData, setFormData] = useState({ student_id: "", password: "", role: "student" });
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -22,7 +24,7 @@ export default function Login() {
     setLoading(true);
     try {
       const data = await auth.login({
-        email: formData.email.trim(),
+        student_id: formData.student_id.trim(),
         password: formData.password,
         role: formData.role,
       });
@@ -36,15 +38,14 @@ export default function Login() {
   };
 
   const togglePassword = () => setShowPassword((prev) => !prev);
+  const isAdmin = formData.role === "admin";
 
   return (
     <div
       className="min-h-screen bg-[url('https://images.unsplash.com/photo-1555854877-bab0e564b8d5?q=80&w=2069')] bg-cover bg-center bg-fixed flex items-center justify-center px-4 font-sans relative"
     >
-      {/* Dark overlay */}
       <div className="absolute inset-0 bg-slate-900/60" />
 
-      {/* Card */}
       <div className="relative z-10 w-full max-w-md bg-white/10 backdrop-blur-md border border-white/20 rounded-xl shadow-2xl p-8">
         <div className="text-center mb-8">
           <h1 className="text-2xl font-bold text-white mb-2 tracking-tight">
@@ -64,16 +65,16 @@ export default function Login() {
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
             <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">
-              Email
+              {isAdmin ? "Username" : "Student ID"}
             </label>
             <input
-              type="email"
-              name="email"
-              value={formData.email}
+              type="text"
+              name="student_id"
+              value={formData.student_id}
               onChange={handleChange}
               required
               className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:border-transparent transition-all"
-              placeholder="Enter your email"
+              placeholder={isAdmin ? "Enter admin username" : "Your Student ID"}
             />
           </div>
 

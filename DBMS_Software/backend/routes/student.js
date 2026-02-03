@@ -4,14 +4,18 @@ const db = require('../config/db');
 const requireLogin = require('../middleware/requireLogin');
 const requireRole = require('../middleware/requireRole');
 
-// Get student ID for current user (student role: by user_id; guardian: by linked_student_id)
-async function getStudentIdForRequest(req) {
-  if (req.session.role === 'student') {
-    const [rows] = await db.execute('SELECT student_id FROM student WHERE user_id = ?', [req.session.userId]);
-    return rows.length ? rows[0].student_id : null;
-  }
-  if (req.session.role === 'guardian') {
-    return req.session.linkedStudentId || null;
+function capacityForRoomType(roomType) {
+  const s = String(roomType || '').toLowerCase();
+  if (s.includes('1-seater') || s === '1') return 1;
+  if (s.includes('2-seater') || s === '2') return 2;
+  if (s.includes('3-seater') || s === '3') return 3;
+  return null;
+}
+
+// ER: session.studentId set at login (USERS → STUDENT link). Used for /me and other student data.
+function getStudentIdForRequest(req) {
+  if (req.session.role === 'student' || req.session.role === 'guardian') {
+    return req.session.studentId != null ? req.session.studentId : null;
   }
   return null;
 }
@@ -36,6 +40,7 @@ router.get('/me', requireLogin, requireRole('student', 'guardian'), async (req, 
     }
     const student = studentRows[0];
     let room = null;
+    let roommates = [];
     let fees = [];
     let attendance = [];
     try {
@@ -54,6 +59,21 @@ router.get('/me', requireLogin, requireRole('student', 'guardian'), async (req, 
         // room table may not exist or have different schema
       }
     }
+    if (room && student.room_id) {
+      const [occRows] = await db.execute(
+        'SELECT COUNT(*) AS cnt FROM student WHERE room_id = ?',
+        [student.room_id]
+      );
+      room.occupied = occRows[0]?.cnt ?? 0;
+      if (room.capacity == null) {
+        room.capacity = capacityForRoomType(room.room_type) ?? 3;
+      }
+      const [mateRows] = await db.execute(
+        'SELECT student_id, name FROM student WHERE room_id = ? AND student_id != ? ORDER BY name',
+        [student.room_id, studentId]
+      );
+      roommates = mateRows.map((m) => ({ student_id: m.student_id, name: m.name ?? '-' }));
+    }
     try {
       const [feeRows] = await db.execute('SELECT * FROM fees WHERE student_id = ? ORDER BY fee_id DESC LIMIT 20', [studentId]);
       fees = feeRows;
@@ -69,6 +89,7 @@ router.get('/me', requireLogin, requireRole('student', 'guardian'), async (req, 
     res.json({
       student,
       room,
+      roommates: roommates,
       fees,
       attendance,
       readOnly: req.session.role === 'guardian',

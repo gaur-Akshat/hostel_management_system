@@ -34,3 +34,12 @@ export const student = {
   list: () => api('/student/list'),
   get: (id) => api(`/student/${id}`),
 };
+
+export const registration = {
+  ping: () => api('/registration/ping'),
+  payAndBook: (body) => api('/registration/pay-and-book', { method: 'POST', body }),
+};
+
+export const seed = {
+  loadDemo: () => api('/seed/demo', { method: 'POST' }),
+};

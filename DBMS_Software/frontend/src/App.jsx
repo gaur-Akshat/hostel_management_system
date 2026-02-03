@@ -7,6 +7,8 @@ import Signup from './pages/Signup';
 import Login from './pages/Login';
 import AdminDashboard from './pages/AdminDashboard';
 import Dashboard from './pages/Dashboard';
+import Register from './pages/Register';
+import RegistrationSummary from './pages/RegistrationSummary';
 
 function ProtectedRoute({ children, allowedRoles }) {
   const { user, loading } = useAuth();
@@ -54,6 +56,30 @@ function App() {
             {(user) => (
               <Layout role={user.role}>
                 <Dashboard role={user.role} />
+              </Layout>
+            )}
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/register"
+        element={
+          <ProtectedRoute allowedRoles={DASHBOARD_ROLES}>
+            {(user) => (
+              <Layout role={user.role}>
+                <Register />
+              </Layout>
+            )}
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/registration-summary"
+        element={
+          <ProtectedRoute allowedRoles={DASHBOARD_ROLES}>
+            {(user) => (
+              <Layout role={user.role}>
+                <RegistrationSummary />
               </Layout>
             )}
           </ProtectedRoute>
