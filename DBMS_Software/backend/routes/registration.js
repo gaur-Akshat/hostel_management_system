@@ -83,9 +83,10 @@ router.post('/pay-and-book', requireLogin, requireRole('student'), async (req, r
       ? `SELECT r.room_id, r.${roomNoCol} AS room_no, (SELECT COUNT(*) FROM student s WHERE s.room_id = r.room_id) AS occupied FROM room r`
       : `SELECT r.room_id, (SELECT COUNT(*) FROM student s WHERE s.room_id = r.room_id) AS occupied FROM room r`;
 
-    if (hasRoomType && hasCapacity) {
+    // Prefer rooms matching room_type; use HAVING occupied < ? (no r.capacity — works even if column missing)
+    if (hasRoomType) {
       const [rooms] = await conn.execute(
-        `${roomSelectBase} WHERE (r.room_type = ? OR r.room_type IS NULL) HAVING occupied < COALESCE(r.capacity, ?) ORDER BY occupied ASC LIMIT 1`,
+        `${roomSelectBase} WHERE (r.room_type = ? OR r.room_type IS NULL) HAVING occupied < ? ORDER BY occupied ASC LIMIT 1`,
         [roomTypeStr, capacity]
       );
       if (rooms.length > 0) {
@@ -106,9 +107,13 @@ router.post('/pay-and-book', requireLogin, requireRole('student'), async (req, r
     if (roomId == null) {
       roomNo = roomNo || `R-${Date.now().toString().slice(-4)}`;
       const insertCol = roomNoCol || 'room_no';
+      const cols = [insertCol];
+      const vals = [roomNo];
+      if (hasRoomType) { cols.push('room_type'); vals.push(roomTypeStr); }
+      if (hasCapacity) { cols.push('capacity'); vals.push(capacity); }
       const [ins] = await conn.execute(
-        `INSERT INTO room (${insertCol}, room_type, capacity) VALUES (?, ?, ?)`,
-        [roomNo, roomTypeStr, capacity]
+        `INSERT INTO room (${cols.join(', ')}) VALUES (${cols.map(() => '?').join(', ')})`,
+        vals
       );
       roomId = ins.insertId;
     }
